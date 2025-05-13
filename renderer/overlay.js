@@ -41,6 +41,37 @@ window.electronAPI.onRenderScene(async scene => {
     img.src = el.src;
   })));
 
+  // preload fonts
+  const textEls = scene.filter(el => el.type === 'text');
+  if (textEls.length > 0) {
+    const systemFonts = await window.electronAPI.getSystemFonts();
+    const uniqueFonts = Array.from(new Set(textEls.map(el => el.fontFamily)));
+    for (const fontFamily of uniqueFonts) {
+      if (['sans-serif', 'serif', 'monospace'].includes(fontFamily.toLowerCase())) {
+        continue;
+      }
+      const match = systemFonts.find(f => f.name === fontFamily);
+      if (match && match.path) {
+        const base64 = await window.electronAPI.loadFontFile(match.path);
+        if (base64) {
+          const ext = match.path.split('.').pop().toLowerCase();
+          const mime = ext === 'otf' ? 'font/otf' : 'font/ttf';
+          const binary = atob(base64);
+          const array = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+          const blob = new Blob([array], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const fontFace = new FontFace(fontFamily, `url(${url})`);
+          try {
+            await fontFace.load();
+            document.fonts.add(fontFace);
+          } catch (e) {
+            console.error('Failed to load font', fontFamily, e);
+          }
+        }
+      }
+    }
+  }
   const startTime = performance.now();
   const totalTime = Math.max(...scene.map(el => el.fadeIn + el.hold + el.fadeOut));
 

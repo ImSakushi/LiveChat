@@ -264,6 +264,7 @@ btnText.onclick = async () => {
     hold:   result.hold,
     fadeOut: result.fadeOut,
     fontFamily: 'sans-serif',
+    fontPath: null,
     color: '#222222',
     strokeWidth: 0,
     strokeColor: '#000000',
@@ -347,6 +348,24 @@ const propsPanel = document.getElementById('properties-panel');
 const propHeader = document.getElementById('properties-header');
 const propColor = document.getElementById('prop-color');
 const propFont = document.getElementById('prop-font');
+// Populate font options dynamically from system
+(async () => {
+  const fonts = await window.electronAPI.getSystemFonts();
+  propFont.innerHTML = '';
+  const generic = ['sans-serif', 'serif', 'monospace'];
+  generic.forEach(gen => {
+    const opt = document.createElement('option');
+    opt.value = gen;
+    opt.textContent = gen;
+    propFont.appendChild(opt);
+  });
+  fonts.forEach(font => {
+    const opt = document.createElement('option');
+    opt.value = font.path;
+    opt.textContent = font.name;
+    propFont.appendChild(opt);
+  });
+})();
 const propStrokeWidth = document.getElementById('prop-strokeWidth');
 const propStrokeColor = document.getElementById('prop-strokeColor');
 const propShadowColor = document.getElementById('prop-shadowColor');
@@ -397,7 +416,7 @@ function updatePropsPanel() {
     propsTextFields.style.display = 'block';
     propsImageFields.style.display = 'none';
     propColor.value = selected.color;
-    propFont.value = selected.fontFamily;
+    propFont.value = selected.fontPath || selected.fontFamily;
     propStrokeWidth.value = selected.strokeWidth;
     propStrokeColor.value = selected.strokeColor;
     propShadowColor.value = selected.shadowColor;
@@ -443,15 +462,44 @@ propColor.addEventListener('input', () => {
   redraw();
 });
 
-propFont.addEventListener('change', () => {
-  if (!selected) return;
-  selected.fontFamily = propFont.value;
-  ctx.font = `${selected.fontSize}px ${selected.fontFamily}`;
-  const m = ctx.measureText(selected.text);
-  selected.width = m.width;
-  selected.height = selected.fontSize;
-  redraw();
-});
+propFont.addEventListener('change', async () => {
+    if (!selected || selected.type !== 'text') return;
+    const value = propFont.value;
+    let fontFamily = value;
+    let fontPath = null;
+    // Check for custom font path vs generic
+    if (value !== 'sans-serif' && value !== 'serif' && value !== 'monospace') {
+      fontPath = value;
+      fontFamily = propFont.options[propFont.selectedIndex].text;
+      // Load font via FontFace API
+      const base64 = await window.electronAPI.loadFontFile(fontPath);
+      if (base64) {
+        const ext = fontPath.split('.').pop().toLowerCase();
+        const mime = ext === 'otf' ? 'font/otf' : 'font/ttf';
+        const binary = atob(base64);
+        const array = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+        const blob = new Blob([array], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const fontFace = new FontFace(fontFamily, `url(${url})`);
+        try {
+          await fontFace.load();
+          document.fonts.add(fontFace);
+        } catch (e) {
+          console.error('Failed to load font', fontFamily, e);
+        }
+      }
+    }
+    // Update element properties
+    selected.fontFamily = fontFamily;
+    selected.fontPath = fontPath;
+    // Re-measure dimensions
+    ctx.font = `${selected.fontSize}px ${selected.fontFamily}`;
+    const m = ctx.measureText(selected.text);
+    selected.width = m.width;
+    selected.height = selected.fontSize;
+    redraw();
+  });
 
 propStrokeWidth.addEventListener('input', () => {
   if (!selected) return;
