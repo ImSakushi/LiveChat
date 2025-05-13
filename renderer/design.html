@@ -43,6 +43,8 @@
   <div id="toolbar">
     <button id="btnText">+ Texte</button>
     <button id="btnImage">+ Image</button>
+    <button id="btnVideo">+ Vidéo</button>
+    <button id="btnAudio">+ Audio</button>
     <button id="btnSend">Envoyer</button>
   </div>
   <canvas id="canvas" width="1280" height="720"></canvas>
@@ -83,6 +85,49 @@
       <div style="text-align: right; margin-top: 12px;">
         <button id="modal-image-ok">OK</button>
         <button id="modal-image-cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal Vidéo -->
+  <div id="modal-video-overlay" class="modal-overlay">
+    <div class="modal">
+      <label>Choisir une vidéo :</label>
+      <input id="modal-video-file" type="file" accept="video/*" />
+      <label>Fade-In (s) :</label>
+      <input id="modal-video-fadein" type="number" value="1" min="0" step="0.1"/>
+      <label>Durée (s) :</label>
+      <input id="modal-video-hold" type="number" value="3" min="0" step="0.1"/>
+      <label>Fade-Out (s) :</label>
+      <input id="modal-video-fadeout" type="number" value="1" min="0" step="0.1"/>
+      <label>Largeur (px) :</label>
+      <input id="modal-video-width" type="number" value="200" min="1" />
+      <label>Hauteur (px) :</label>
+      <input id="modal-video-height" type="number" value="200" min="1" />
+      <div style="text-align: right; margin-top: 12px;">
+        <button id="modal-video-ok">OK</button>
+        <button id="modal-video-cancel">Annuler</button>
+      </div>
+    </div>
+  </div>
+  <!-- modal Audio -->
+  <div id="modal-audio-overlay" class="modal-overlay">
+    <div class="modal">
+      <label>Choisir un audio :</label>
+      <input id="modal-audio-file" type="file" accept="audio/*" />
+      <label>Fade-In (s) :</label>
+      <input id="modal-audio-fadein" type="number" value="1" min="0" step="0.1"/>
+      <label>Durée (s) :</label>
+      <input id="modal-audio-hold" type="number" value="3" min="0" step="0.1"/>
+      <label>Fade-Out (s) :</label>
+      <input id="modal-audio-fadeout" type="number" value="1" min="0" step="0.1"/>
+      <label>Largeur (px) :</label>
+      <input id="modal-audio-width" type="number" value="100" min="1" />
+      <label>Hauteur (px) :</label>
+      <input id="modal-audio-height" type="number" value="100" min="1" />
+      <div style="text-align: right; margin-top: 12px;">
+        <button id="modal-audio-ok">OK</button>
+        <button id="modal-audio-cancel">Annuler</button>
       </div>
     </div>
   </div>

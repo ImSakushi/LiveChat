@@ -1,8 +1,14 @@
 const canvas  = document.getElementById('canvas');
 const ctx     = canvas.getContext('2d');
 const btnText = document.getElementById('btnText');
-const btnImage= document.getElementById('btnImage');
-const btnSend = document.getElementById('btnSend');
+const btnImage = document.getElementById('btnImage');
+const btnVideo = document.getElementById('btnVideo');
+const btnAudio = document.getElementById('btnAudio');
+const btnSend  = document.getElementById('btnSend');
+
+// Preload audio icon for design preview
+const audioIcon = new Image();
+audioIcon.src = '../audio.svg';
 
 let scene     = [];  // éléments { type, x, y, … }
 let selected  = null;
@@ -43,6 +49,18 @@ function redraw() {
         ctx.strokeStyle = el.strokeColor;
         ctx.strokeRect(el.x, el.y, el.width, el.height);
       }
+      ctx.restore();
+    } else if (el.type === 'video') {
+      if (!el.videoObj) return;
+      ctx.save();
+      // draw video frame
+      ctx.drawImage(el.videoObj, el.x, el.y, el.width, el.height);
+      ctx.restore();
+    } else if (el.type === 'audio') {
+      if (!el.svgObj) return;
+      ctx.save();
+      // draw audio icon
+      ctx.drawImage(el.svgObj, el.x, el.y, el.width, el.height);
       ctx.restore();
     }
 
@@ -244,6 +262,122 @@ function openImageModal() {
   });
 }
 
+// — Modal VIDÉO
+const mvOverlay = document.getElementById('modal-video-overlay');
+const mvFile    = document.getElementById('modal-video-file');
+const mvOk      = document.getElementById('modal-video-ok');
+const mvCancel  = document.getElementById('modal-video-cancel');
+const mvFadeIn  = document.getElementById('modal-video-fadein');
+const mvHold    = document.getElementById('modal-video-hold');
+const mvFadeOut = document.getElementById('modal-video-fadeout');
+const mvWidth   = document.getElementById('modal-video-width');
+const mvHeight  = document.getElementById('modal-video-height');
+
+function openVideoModal() {
+  return new Promise(resolve => {
+    mvFile.value = '';
+    mvFadeIn.value = '1'; mvHold.value = '3'; mvFadeOut.value = '1';
+    mvWidth.value = '200'; mvHeight.value = '200';
+    mvOverlay.style.display = 'flex';
+
+    function onFileChange() {
+      const file = mvFile.files[0]; if (!file) return;
+      const url = URL.createObjectURL(file);
+      const vid = document.createElement('video');
+      vid.onloadedmetadata = () => {
+        mvWidth.value = vid.videoWidth;
+        mvHeight.value = vid.videoHeight;
+        URL.revokeObjectURL(url);
+      };
+      vid.src = url;
+    }
+
+    function cleanup() {
+      mvOverlay.style.display = 'none';
+      mvOk.removeEventListener('click', onOk);
+      mvCancel.removeEventListener('click', onCancel);
+      mvFile.removeEventListener('change', onFileChange);
+    }
+
+    function onOk() {
+      const file = mvFile.files[0]; if (!file) { cleanup(); return resolve(null); }
+      const reader = new FileReader();
+      reader.onload = () => {
+        cleanup();
+        resolve({
+          src     : reader.result,
+          fadeIn  : Math.max(0, parseFloat(mvFadeIn.value))  *1000,
+          hold    : Math.max(0, parseFloat(mvHold.value))    *1000,
+          fadeOut : Math.max(0, parseFloat(mvFadeOut.value)) *1000,
+          width   : Math.max(1, parseInt(mvWidth.value,10)),
+          height  : Math.max(1, parseInt(mvHeight.value,10))
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    mvFile.addEventListener('change', onFileChange);
+    mvOk.addEventListener('click', onOk);
+    mvCancel.addEventListener('click', onCancel);
+  });
+}
+
+// — Modal AUDIO
+const aaOverlay = document.getElementById('modal-audio-overlay');
+const aaFile    = document.getElementById('modal-audio-file');
+const aaOk      = document.getElementById('modal-audio-ok');
+const aaCancel  = document.getElementById('modal-audio-cancel');
+const aaFadeIn  = document.getElementById('modal-audio-fadein');
+const aaHold    = document.getElementById('modal-audio-hold');
+const aaFadeOut = document.getElementById('modal-audio-fadeout');
+const aaWidth   = document.getElementById('modal-audio-width');
+const aaHeight  = document.getElementById('modal-audio-height');
+
+function openAudioModal() {
+  return new Promise(resolve => {
+    aaFile.value = '';
+    aaFadeIn.value = '1'; aaHold.value = '3'; aaFadeOut.value = '1';
+    aaWidth.value = '100'; aaHeight.value = '100';
+    aaOverlay.style.display = 'flex';
+
+    function cleanup() {
+      aaOverlay.style.display = 'none';
+      aaOk.removeEventListener('click', onOk);
+      aaCancel.removeEventListener('click', onCancel);
+    }
+
+    function onOk() {
+      const file = aaFile.files[0]; if (!file) { cleanup(); return resolve(null); }
+      const reader = new FileReader();
+      reader.onload = () => {
+        cleanup();
+        resolve({
+          src     : reader.result,
+          fadeIn  : Math.max(0, parseFloat(aaFadeIn.value))  *1000,
+          hold    : Math.max(0, parseFloat(aaHold.value))    *1000,
+          fadeOut : Math.max(0, parseFloat(aaFadeOut.value)) *1000,
+          width   : Math.max(1, parseInt(aaWidth.value,10)),
+          height  : Math.max(1, parseInt(aaHeight.value,10))
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    aaOk.addEventListener('click', onOk);
+    aaCancel.addEventListener('click', onCancel);
+  });
+}
+
 // — Gestion des boutons :
 btnText.onclick = async () => {
   const result = await openTextModal();
@@ -300,7 +434,49 @@ btnImage.onclick = async () => {
   // une fois l'image chargée, redraw
   img.onload = redraw;
 };
-
+// — Bouton Vidéo
+btnVideo.onclick = async () => {
+  const result = await openVideoModal();
+  if (!result) return;
+  // crée l'objet Video pour preview
+  const vid = document.createElement('video');
+  vid.src = result.src;
+  scene.push({
+    type: 'video',
+    x: Math.round(Math.random() * (canvas.width  - result.width - 20) + 10),
+    y: Math.round(Math.random() * (canvas.height - result.height - 20) + 10),
+    src: result.src,
+    videoObj: vid,
+    width:  result.width,
+    height: result.height,
+    fadeIn:  result.fadeIn,
+    hold:    result.hold,
+    fadeOut: result.fadeOut
+  });
+  vid.onloadeddata = redraw;
+};
+// — Bouton Audio
+btnAudio.onclick = async () => {
+  const result = await openAudioModal();
+  if (!result) return;
+  // crée l'objet audio icon pour preview
+  const img = audioIcon;
+  scene.push({
+    type: 'audio',
+    x: Math.round(Math.random() * (canvas.width  - result.width - 20) + 10),
+    y: Math.round(Math.random() * (canvas.height - result.height - 20) + 10),
+    src: result.src,
+    svgObj: img,
+    width:  result.width,
+    height: result.height,
+    fadeIn:  result.fadeIn,
+    hold:    result.hold,
+    fadeOut: result.fadeOut
+  });
+  // redraw when icon loaded
+  img.onload = redraw;
+};
+// — Bouton Send
 btnSend.addEventListener('click', () => {
   if (scene.length === 0) return;
 
@@ -337,6 +513,11 @@ btnSend.addEventListener('click', () => {
         strokeWidth: el.strokeWidth,
         strokeColor: el.strokeColor,
         opacity:     el.opacity
+      };
+    } else if (el.type === 'video' || el.type === 'audio') {
+      return {
+        ...base,
+        src: el.src
       };
     }
   });

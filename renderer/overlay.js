@@ -40,6 +40,29 @@ window.electronAPI.onRenderScene(async scene => {
     img.onload = () => { el.imgObj = img; res(); };
     img.src = el.src;
   })));
+  // preload videos
+  const vidEls = scene.filter(el => el.type === 'video');
+  await Promise.all(vidEls.map(el => new Promise(res => {
+    const vid = document.createElement('video');
+    vid.src = el.src;
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.onloadeddata = () => { el.videoObj = vid; res(); };
+    vid.play().catch(() => { /* ignore autoplay errors */ });
+  })));
+  // preload audios
+  const audioEls = scene.filter(el => el.type === 'audio');
+  await Promise.all(audioEls.map(el => new Promise(res => {
+    const aud = document.createElement('audio');
+    aud.src = el.src;
+    aud.preload = 'auto';
+    aud.volume = 0;
+    aud.autoplay = true;
+    aud.style.display = 'none';
+    document.body.appendChild(aud);
+    aud.oncanplay = () => { el.audioObj = aud; res(); };
+    aud.play().catch(() => { /* ignore autoplay errors */ });
+  })));
 
   // preload fonts
   const textEls = scene.filter(el => el.type === 'text');
@@ -85,6 +108,12 @@ window.electronAPI.onRenderScene(async scene => {
       else if (t < el.fadeIn + el.hold)       alpha = 1;
       else if (t < el.fadeIn + el.hold + el.fadeOut)
         alpha = 1 - ((t - el.fadeIn - el.hold) / el.fadeOut);
+      // Audio: update volume and exit
+      if (el.type === 'audio') {
+        if (el.audioObj) el.audioObj.volume = alpha;
+        return;
+      }
+      // Skip invisible elements
       if (alpha <= 0) return;
 
       ctx.save();
@@ -113,6 +142,9 @@ window.electronAPI.onRenderScene(async scene => {
           ctx.strokeStyle = el.strokeColor;
           ctx.strokeRect(el.x, el.y, el.width, el.height);
         }
+      } else if (el.type === 'video') {
+        // draw video frame
+        ctx.drawImage(el.videoObj, el.x, el.y, el.width, el.height);
       }
       ctx.restore();
     });
