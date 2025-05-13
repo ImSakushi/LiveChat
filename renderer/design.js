@@ -32,7 +32,18 @@ function redraw() {
 
     } else if (el.type === 'image') {
       if (!el.imgObj) return;
+      ctx.save();
+      // apply image opacity
+      const imgOp = el.opacity != null ? el.opacity : 1;
+      ctx.globalAlpha = imgOp;
       ctx.drawImage(el.imgObj, el.x, el.y, el.width, el.height);
+      // image border if needed
+      if (el.strokeWidth > 0) {
+        ctx.lineWidth = el.strokeWidth;
+        ctx.strokeStyle = el.strokeColor;
+        ctx.strokeRect(el.x, el.y, el.width, el.height);
+      }
+      ctx.restore();
     }
 
     if (el === selected) {
@@ -280,7 +291,10 @@ btnImage.onclick = async () => {
     height: result.height,
     fadeIn:  result.fadeIn,
     hold:    result.hold,
-    fadeOut: result.fadeOut
+    fadeOut: result.fadeOut,
+    strokeWidth: 0,
+    strokeColor: '#000000',
+    opacity: 1
   });
   // une fois l'image chargée, redraw
   img.onload = redraw;
@@ -318,7 +332,10 @@ btnSend.addEventListener('click', () => {
     } else if (el.type === 'image') {
       return {
         ...base,
-        src: el.src    // dataURL ou URL
+        src: el.src,   // dataURL ou URL
+        strokeWidth: el.strokeWidth,
+        strokeColor: el.strokeColor,
+        opacity:     el.opacity
       };
     }
   });
@@ -336,6 +353,15 @@ const propShadowColor = document.getElementById('prop-shadowColor');
 const propShadowBlur = document.getElementById('prop-shadowBlur');
 const propShadowOffsetX = document.getElementById('prop-shadowOffsetX');
 const propShadowOffsetY = document.getElementById('prop-shadowOffsetY');
+// Containers for props fields
+const propsTextFields  = document.getElementById('props-text-fields');
+const propsImageFields = document.getElementById('props-image-fields');
+// Image properties inputs
+const propImgWidth       = document.getElementById('prop-img-width');
+const propImgHeight      = document.getElementById('prop-img-height');
+const propImgStrokeWidth = document.getElementById('prop-img-strokeWidth');
+const propImgStrokeColor = document.getElementById('prop-img-strokeColor');
+const propOpacity        = document.getElementById('prop-opacity');
 
 let draggingPanel = false, panelStartX = 0, panelStartY = 0, panelX = 0, panelY = 0;
 
@@ -361,8 +387,15 @@ window.addEventListener('mousemove', e => {
 window.addEventListener('mouseup', () => draggingPanel = false);
 
 function updatePropsPanel() {
-  if (selected && selected.type === 'text') {
-    propsPanel.style.display = 'block';
+  if (!selected) {
+    propsPanel.style.display = 'none';
+    return;
+  }
+  propsPanel.style.display = 'block';
+  if (selected.type === 'text') {
+    propHeader.textContent = 'Propriétés Texte';
+    propsTextFields.style.display = 'block';
+    propsImageFields.style.display = 'none';
     propColor.value = selected.color;
     propFont.value = selected.fontFamily;
     propStrokeWidth.value = selected.strokeWidth;
@@ -371,8 +404,15 @@ function updatePropsPanel() {
     propShadowBlur.value = selected.shadowBlur;
     propShadowOffsetX.value = selected.shadowOffsetX;
     propShadowOffsetY.value = selected.shadowOffsetY;
-  } else {
-    propsPanel.style.display = 'none';
+  } else if (selected.type === 'image') {
+    propHeader.textContent = 'Propriétés Image';
+    propsTextFields.style.display = 'none';
+    propsImageFields.style.display = 'block';
+    propImgWidth.value = selected.width;
+    propImgHeight.value = selected.height;
+    propImgStrokeWidth.value = selected.strokeWidth;
+    propImgStrokeColor.value = selected.strokeColor;
+    propOpacity.value = selected.opacity;
   }
 }
 
@@ -381,11 +421,15 @@ canvas.addEventListener('click', e => {
   let clicked = null;
   for (let i = scene.length - 1; i >= 0; i--) {
     const el = scene[i];
+    let inBox = false;
     if (el.type === 'text') {
-      if (isInRect(mx, my, el.x, el.y - el.height, el.width, el.height)) {
-        clicked = el;
-        break;
-      }
+      inBox = isInRect(mx, my, el.x, el.y - el.height, el.width, el.height);
+    } else if (el.type === 'image') {
+      inBox = isInRect(mx, my, el.x, el.y, el.width, el.height);
+    }
+    if (inBox) {
+      clicked = el;
+      break;
     }
   }
   selected = clicked;
@@ -442,5 +486,31 @@ propShadowOffsetX.addEventListener('input', () => {
 propShadowOffsetY.addEventListener('input', () => {
   if (!selected) return;
   selected.shadowOffsetY = parseInt(propShadowOffsetY.value, 10);
+  redraw();
+});
+// Image property listeners
+propImgWidth.addEventListener('input', () => {
+  if (!selected || selected.type !== 'image') return;
+  selected.width = Math.max(1, parseInt(propImgWidth.value, 10));
+  redraw();
+});
+propImgHeight.addEventListener('input', () => {
+  if (!selected || selected.type !== 'image') return;
+  selected.height = Math.max(1, parseInt(propImgHeight.value, 10));
+  redraw();
+});
+propImgStrokeWidth.addEventListener('input', () => {
+  if (!selected || selected.type !== 'image') return;
+  selected.strokeWidth = parseFloat(propImgStrokeWidth.value);
+  redraw();
+});
+propImgStrokeColor.addEventListener('input', () => {
+  if (!selected || selected.type !== 'image') return;
+  selected.strokeColor = propImgStrokeColor.value;
+  redraw();
+});
+propOpacity.addEventListener('input', () => {
+  if (!selected || selected.type !== 'image') return;
+  selected.opacity = parseFloat(propOpacity.value);
   redraw();
 });

@@ -57,7 +57,9 @@ window.electronAPI.onRenderScene(async scene => {
       if (alpha <= 0) return;
 
       ctx.save();
-      ctx.globalAlpha = alpha;
+      // Apply fade alpha and element opacity
+      const elemOpacity = el.opacity != null ? el.opacity : 1;
+      ctx.globalAlpha = alpha * elemOpacity;
       if (el.type === 'text') {
         ctx.font = `${el.fontSize}px ${el.fontFamily}`;
         ctx.fillStyle = el.color;
@@ -74,6 +76,12 @@ window.electronAPI.onRenderScene(async scene => {
         ctx.fillText(el.text, el.x, el.y);
       } else if (el.type === 'image') {
         ctx.drawImage(el.imgObj, el.x, el.y, el.width, el.height);
+        // Optional border for image
+        if (el.strokeWidth > 0) {
+          ctx.lineWidth = el.strokeWidth;
+          ctx.strokeStyle = el.strokeColor;
+          ctx.strokeRect(el.x, el.y, el.width, el.height);
+        }
       }
       ctx.restore();
     });
