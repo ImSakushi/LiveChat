@@ -210,7 +210,38 @@ function openImageModal() {
     miWidth.value = '200'; miHeight.value = '200';
     miOverlay.style.display = 'flex';
 
-    // met à jour le width/height quand on charge le fichier
+    // --- état ratio ---
+    let lockRatio = false;
+    let aspectRatio = 1;
+
+    // --- récupère les éléments ---
+    const miLockBtn = document.getElementById('modal-image-lock');
+
+    // 1) Définit vos handlers nommés
+    const onLockClick = () => {
+      lockRatio = !lockRatio;
+      miLockBtn.textContent = lockRatio ? '🔒' : '🔓';
+      miLockBtn.setAttribute('aria-pressed', lockRatio);
+    };
+
+    const onWidthInput = () => {
+      if (!lockRatio) return;
+      const w = parseInt(miWidth.value, 10) || 1;
+      miHeight.value = Math.max(1, Math.round(w / aspectRatio));
+    };
+
+    const onHeightInput = () => {
+      if (!lockRatio) return;
+      const h = parseInt(miHeight.value, 10) || 1;
+      miWidth.value = Math.max(1, Math.round(h * aspectRatio));
+    };
+
+    // 2) Branche-les
+    miLockBtn.addEventListener('click', onLockClick);
+    miWidth   .addEventListener('input', onWidthInput);
+    miHeight  .addEventListener('input', onHeightInput);
+
+    // Met à jour le ratio dès que le fichier charge
     function onFileChange() {
       const file = miFile.files[0];
       if (!file) return;
@@ -218,19 +249,27 @@ function openImageModal() {
       reader.onload = () => {
         const img = new Image();
         img.onload = () => {
-          miWidth.value  = img.naturalWidth;
-          miHeight.value = img.naturalHeight;
+          miWidth.value    = img.naturalWidth;
+          miHeight.value   = img.naturalHeight;
+          aspectRatio      = img.naturalWidth / img.naturalHeight;
         };
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
     }
 
+    miFile.addEventListener('change', onFileChange);
+
     function cleanup() {
       miOverlay.style.display = 'none';
-      miOk.removeEventListener('click', onOk);
-      miCancel.removeEventListener('click', onCancel);
-      miFile.removeEventListener('change', onFileChange);
+      miOk      .removeEventListener('click', onOk);
+      miCancel  .removeEventListener('click', onCancel);
+      miFile    .removeEventListener('change', onFileChange);
+
+      // 3) Et débranche proprement les handlers qu’on a ajoutés
+      miLockBtn.removeEventListener('click', onLockClick);
+      miWidth   .removeEventListener('input', onWidthInput);
+      miHeight  .removeEventListener('input', onHeightInput);
     }
 
     function onOk() {
