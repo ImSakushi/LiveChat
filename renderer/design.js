@@ -14,10 +14,21 @@ function redraw() {
   ctx.clearRect(0,0, canvas.width, canvas.height);
   scene.forEach(el => {
     if (el.type === 'text') {
-      ctx.font      = `${el.fontSize}px sans-serif`;
-      ctx.fillStyle = '#222';
-      // coordonnée x,y déjà arrondie
+      ctx.save();
+      ctx.font = `${el.fontSize}px ${el.fontFamily}`;
+      ctx.fillStyle = el.color;
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowColor = el.shadowColor;
+      ctx.shadowBlur = el.shadowBlur;
+      ctx.shadowOffsetX = el.shadowOffsetX;
+      ctx.shadowOffsetY = el.shadowOffsetY;
+      if (el.strokeWidth > 0) {
+        ctx.lineWidth = el.strokeWidth;
+        ctx.strokeStyle = el.strokeColor;
+        ctx.strokeText(el.text, el.x, el.y);
+      }
       ctx.fillText(el.text, el.x, el.y);
+      ctx.restore();
 
     } else if (el.type === 'image') {
       if (!el.imgObj) return;
@@ -240,7 +251,15 @@ btnText.onclick = async () => {
     fontSize, width, height,
     fadeIn: result.fadeIn,
     hold:   result.hold,
-    fadeOut:result.fadeOut
+    fadeOut: result.fadeOut,
+    fontFamily: 'sans-serif',
+    color: '#222222',
+    strokeWidth: 0,
+    strokeColor: '#000000',
+    shadowColor: '#000000',
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0
   });
   redraw();
 };
@@ -285,8 +304,16 @@ btnSend.addEventListener('click', () => {
     if (el.type === 'text') {
       return {
         ...base,
-        text:     el.text,
-        fontSize: el.fontSize
+        text:         el.text,
+        fontSize:     el.fontSize,
+        fontFamily:   el.fontFamily,
+        color:        el.color,
+        strokeWidth:  el.strokeWidth,
+        strokeColor:  el.strokeColor,
+        shadowColor:  el.shadowColor,
+        shadowBlur:   el.shadowBlur,
+        shadowOffsetX: el.shadowOffsetX,
+        shadowOffsetY: el.shadowOffsetY
       };
     } else if (el.type === 'image') {
       return {
@@ -297,4 +324,123 @@ btnSend.addEventListener('click', () => {
   });
 
   window.electronAPI.sendScene(cleanScene);
+});
+// — Propriétés Panel pour Text
+const propsPanel = document.getElementById('properties-panel');
+const propHeader = document.getElementById('properties-header');
+const propColor = document.getElementById('prop-color');
+const propFont = document.getElementById('prop-font');
+const propStrokeWidth = document.getElementById('prop-strokeWidth');
+const propStrokeColor = document.getElementById('prop-strokeColor');
+const propShadowColor = document.getElementById('prop-shadowColor');
+const propShadowBlur = document.getElementById('prop-shadowBlur');
+const propShadowOffsetX = document.getElementById('prop-shadowOffsetX');
+const propShadowOffsetY = document.getElementById('prop-shadowOffsetY');
+
+let draggingPanel = false, panelStartX = 0, panelStartY = 0, panelX = 0, panelY = 0;
+
+propHeader.addEventListener('mousedown', e => {
+  draggingPanel = true;
+  panelStartX = e.clientX;
+  panelStartY = e.clientY;
+  const rect = propsPanel.getBoundingClientRect();
+  panelX = rect.left;
+  panelY = rect.top;
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', e => {
+  if (!draggingPanel) return;
+  const dx = e.clientX - panelStartX;
+  const dy = e.clientY - panelStartY;
+  propsPanel.style.left = (panelX + dx) + 'px';
+  propsPanel.style.top = (panelY + dy) + 'px';
+  propsPanel.style.right = 'auto';
+});
+
+window.addEventListener('mouseup', () => draggingPanel = false);
+
+function updatePropsPanel() {
+  if (selected && selected.type === 'text') {
+    propsPanel.style.display = 'block';
+    propColor.value = selected.color;
+    propFont.value = selected.fontFamily;
+    propStrokeWidth.value = selected.strokeWidth;
+    propStrokeColor.value = selected.strokeColor;
+    propShadowColor.value = selected.shadowColor;
+    propShadowBlur.value = selected.shadowBlur;
+    propShadowOffsetX.value = selected.shadowOffsetX;
+    propShadowOffsetY.value = selected.shadowOffsetY;
+  } else {
+    propsPanel.style.display = 'none';
+  }
+}
+
+canvas.addEventListener('click', e => {
+  const mx = e.offsetX, my = e.offsetY;
+  let clicked = null;
+  for (let i = scene.length - 1; i >= 0; i--) {
+    const el = scene[i];
+    if (el.type === 'text') {
+      if (isInRect(mx, my, el.x, el.y - el.height, el.width, el.height)) {
+        clicked = el;
+        break;
+      }
+    }
+  }
+  selected = clicked;
+  redraw();
+  updatePropsPanel();
+});
+
+propColor.addEventListener('input', () => {
+  if (!selected) return;
+  selected.color = propColor.value;
+  redraw();
+});
+
+propFont.addEventListener('change', () => {
+  if (!selected) return;
+  selected.fontFamily = propFont.value;
+  ctx.font = `${selected.fontSize}px ${selected.fontFamily}`;
+  const m = ctx.measureText(selected.text);
+  selected.width = m.width;
+  selected.height = selected.fontSize;
+  redraw();
+});
+
+propStrokeWidth.addEventListener('input', () => {
+  if (!selected) return;
+  selected.strokeWidth = parseFloat(propStrokeWidth.value);
+  redraw();
+});
+
+propStrokeColor.addEventListener('input', () => {
+  if (!selected) return;
+  selected.strokeColor = propStrokeColor.value;
+  redraw();
+});
+
+propShadowColor.addEventListener('input', () => {
+  if (!selected) return;
+  selected.shadowColor = propShadowColor.value;
+  redraw();
+});
+
+propShadowBlur.addEventListener('input', () => {
+  if (!selected) return;
+  selected.shadowBlur = parseFloat(propShadowBlur.value);
+  redraw();
+});
+
+propShadowOffsetX.addEventListener('input', () => {
+  if (!selected) return;
+  selected.shadowOffsetX = parseInt(propShadowOffsetX.value, 10);
+  redraw();
+});
+
+propShadowOffsetY.addEventListener('input', () => {
+  if (!selected) return;
+  selected.shadowOffsetY = parseInt(propShadowOffsetY.value, 10);
+  redraw();
 });

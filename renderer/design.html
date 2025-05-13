@@ -87,6 +87,35 @@
     </div>
   </div>
 
+  <!-- Properties Panel for Text -->
+  <div id="properties-panel" style="display:none; position:absolute; top:50px; right:10px; width:220px; background:#fff; border:1px solid #ccc; box-shadow:0 4px 12px rgba(0,0,0,0.3); z-index:1000;">
+    <div id="properties-header" style="cursor:move; background:#f0f0f0; padding:6px; font-weight:bold; text-align:center;">Propriétés Texte</div>
+    <div style="padding:6px; max-height:calc(100vh - 100px); overflow:auto;">
+      <label>Couleur:</label>
+      <input type="color" id="prop-color" style="width:100%; margin-bottom:6px;"><br>
+      <label>Police:</label>
+      <select id="prop-font" style="width:100%; margin-bottom:6px;">
+        <option value="sans-serif">Sans-serif</option>
+        <option value="Arial">Arial</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Palatino">Palatino</option>
+      </select><br>
+      <label>Contour (px):</label>
+      <input type="number" id="prop-strokeWidth" min="0" value="0" style="width:100%; margin-bottom:6px;"><br>
+      <label>Couleur Contour:</label>
+      <input type="color" id="prop-strokeColor" style="width:100%; margin-bottom:6px;"><br>
+      <label>Ombre Couleur:</label>
+      <input type="color" id="prop-shadowColor" style="width:100%; margin-bottom:6px;"><br>
+      <label>Ombre Flou (px):</label>
+      <input type="number" id="prop-shadowBlur" min="0" value="0" style="width:100%; margin-bottom:6px;"><br>
+      <label>Décalage X (px):</label>
+      <input type="number" id="prop-shadowOffsetX" value="0" style="width:48%; margin-bottom:6px;"><input type="number" id="prop-shadowOffsetY" value="0" style="width:48%; margin-bottom:6px; float:right;"><br>
+    </div>
+  </div>
   <script type="module" src="design.js"></script>
 </body>
 </html>

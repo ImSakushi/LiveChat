@@ -56,18 +56,26 @@ window.electronAPI.onRenderScene(async scene => {
         alpha = 1 - ((t - el.fadeIn - el.hold) / el.fadeOut);
       if (alpha <= 0) return;
 
-      ctx.globalAlpha    = alpha;
+      ctx.save();
+      ctx.globalAlpha = alpha;
       if (el.type === 'text') {
-        ctx.font         = `${el.fontSize}px sans-serif`;
-        ctx.fillStyle    = '#ff4081';
+        ctx.font = `${el.fontSize}px ${el.fontFamily}`;
+        ctx.fillStyle = el.color;
         ctx.textBaseline = 'alphabetic';
+        ctx.shadowColor = el.shadowColor;
+        ctx.shadowBlur = el.shadowBlur;
+        ctx.shadowOffsetX = el.shadowOffsetX;
+        ctx.shadowOffsetY = el.shadowOffsetY;
+        if (el.strokeWidth > 0) {
+          ctx.lineWidth = el.strokeWidth;
+          ctx.strokeStyle = el.strokeColor;
+          ctx.strokeText(el.text, el.x, el.y);
+        }
         ctx.fillText(el.text, el.x, el.y);
-
       } else if (el.type === 'image') {
         ctx.drawImage(el.imgObj, el.x, el.y, el.width, el.height);
       }
-
-      ctx.globalAlpha = 1;
+      ctx.restore();
     });
 
     if (t < totalTime) requestAnimationFrame(animate);
