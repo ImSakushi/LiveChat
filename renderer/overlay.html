@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>LiveChat – Overlay</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+    #overlayCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: 0 0;   /* point de pivot = coin supérieur gauche */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="overlayCanvas" width="1280" height="720"></canvas>
+  <script type="module" src="overlay.js"></script>
+</body>
+</html>
