@@ -1,3 +1,10 @@
+import createNetwork from './network.js';
+
+// initialisation : même room pour tout le monde, et URL Scalingo
+const { broadcastScene } = createNetwork(
+  'default', 
+  'https://livechat.osc-fr1.scalingo.io'
+);
 const canvas  = document.getElementById('canvas');
 const ctx     = canvas.getContext('2d');
 const btnText = document.getElementById('btnText');
@@ -519,7 +526,7 @@ btnAudio.onclick = async () => {
 btnSend.addEventListener('click', () => {
   if (scene.length === 0) return;
 
-  // On ne garde que les champs sérialisables : pas de imgObj !
+  // 1) Sérialisation de la scène (sans imgObj, videoObj…)
   const cleanScene = scene.map(el => {
     const base = {
       type:    el.type,
@@ -534,34 +541,36 @@ btnSend.addEventListener('click', () => {
     if (el.type === 'text') {
       return {
         ...base,
-        text:         el.text,
-        fontSize:     el.fontSize,
-        fontFamily:   el.fontFamily,
-        color:        el.color,
-        strokeWidth:  el.strokeWidth,
-        strokeColor:  el.strokeColor,
-        shadowColor:  el.shadowColor,
-        shadowBlur:   el.shadowBlur,
+        text:          el.text,
+        fontSize:      el.fontSize,
+        fontFamily:    el.fontFamily,
+        color:         el.color,
+        strokeWidth:   el.strokeWidth,
+        strokeColor:   el.strokeColor,
+        shadowColor:   el.shadowColor,
+        shadowBlur:    el.shadowBlur,
         shadowOffsetX: el.shadowOffsetX,
         shadowOffsetY: el.shadowOffsetY
       };
     } else if (el.type === 'image') {
       return {
         ...base,
-        src: el.src,   // dataURL ou URL
+        src:         el.src,
         strokeWidth: el.strokeWidth,
         strokeColor: el.strokeColor,
         opacity:     el.opacity
       };
-    } else if (el.type === 'video' || el.type === 'audio') {
-      return {
-        ...base,
-        src: el.src
-      };
+    } else {
+      // video ou audio
+      return { ...base, src: el.src };
     }
   });
 
+  // 2) Envoi local à votre overlay
   window.electronAPI.sendScene(cleanScene);
+
+  // 3) Broadcast à tous les pairs
+  broadcastScene(cleanScene);
 });
 // — Propriétés Panel pour Text
 const propsPanel = document.getElementById('properties-panel');

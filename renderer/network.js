@@ -2,7 +2,7 @@
 import SimplePeer from 'simple-peer';
 import io         from 'socket.io-client';
 
-export default function createNetwork(room = 'default', signalingURL = 'http://localhost:3001') {
+export default function createNetwork(room = 'default', signalingURL = 'https://livechat.osc-fr1.scalingo.io') {
   const socket = io(signalingURL);
   const peers  = new Map();   // id-socket -> SimplePeer
 
